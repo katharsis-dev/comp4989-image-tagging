@@ -12,11 +12,11 @@ from tensorflow.keras.preprocessing import image
 from tqdm import tqdm
 
 data = pd.read_csv("../Movies-Poster_Dataset/train.csv")
-data = data.head(100)
+# data = data.head(100)
 print(data.shape)
 
-image_height = 350
-image_width = 350
+image_height = 300
+image_width = 300
 
 
 def get_data():
@@ -45,34 +45,34 @@ def get_data():
 def get_model(shape):
     model = models.Sequential()
     model.add(layers.Conv2D(16, (3, 3), activation="relu", input_shape=shape))
-    model.add(layers.BatchNormalization())
+    # model.add(layers.BatchNormalization())
     model.add(layers.MaxPool2D(2, 2))
     model.add(layers.Dropout(0.3))
 
     model.add(layers.Conv2D(32, (3, 3), activation="relu"))
-    model.add(layers.BatchNormalization())
+    # model.add(layers.BatchNormalization())
     model.add(layers.MaxPool2D(2, 2))
     model.add(layers.Dropout(0.3))
 
-    model.add(layers.Conv2D(64, (3, 3), activation="relu"))
-    model.add(layers.BatchNormalization())
-    model.add(layers.MaxPool2D(2, 2))
-    model.add(layers.Dropout(0.3))
+    # model.add(layers.Conv2D(64, (3, 3), activation="relu"))
+    # # model.add(layers.BatchNormalization())
+    # model.add(layers.MaxPool2D(2, 2))
+    # model.add(layers.Dropout(0.3))
 
-    model.add(layers.Conv2D(128, (3, 3), activation="relu"))
-    model.add(layers.BatchNormalization())
-    model.add(layers.MaxPool2D(2, 2))
-    model.add(layers.Dropout(0.3))
+    # model.add(layers.Conv2D(128, (3, 3), activation="relu"))
+    # model.add(layers.BatchNormalization())
+    # model.add(layers.MaxPool2D(2, 2))
+    # model.add(layers.Dropout(0.3))
 
     model.add(layers.Flatten())
 
     model.add(layers.Dense(64, activation="relu"))
-    model.add(layers.BatchNormalization())
+    # model.add(layers.BatchNormalization())
     model.add(layers.Dropout(0.3))
 
-    model.add(layers.Dense(128, activation="relu"))
-    model.add(layers.BatchNormalization())
-    model.add(layers.Dropout(0.3))
+    # model.add(layers.Dense(128, activation="relu"))
+    # # model.add(layers.BatchNormalization())
+    # model.add(layers.Dropout(0.3))
 
     model.add(layers.Dense(25, activation="sigmoid"))
 
@@ -81,9 +81,9 @@ def get_model(shape):
 
 if __name__ == "__main__":
     X_train, X_test, y_train, y_test = get_data()
-    model = get_model(X_train[0].shape)
 
+    model = get_model(X_train[0].shape)
     model.compile(optimizer="rmsprop", loss="binary_crossentropy", metrics=["accuracy"])
     es_callback = keras.callbacks.EarlyStopping(monitor="val_loss", patience=3)
-    history = model.fit(X_train, y_train, epochs=15, callbacks=[es_callback], validation_split=0.3)
+    history = model.fit(X_train, y_train, epochs=15, callbacks=[es_callback], validation_split=0.3, batch_size=16)
 
