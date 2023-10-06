@@ -1,0 +1,6 @@
+pandas
+transformers
+datasets
+torchmetrics
+pillow
+torch
