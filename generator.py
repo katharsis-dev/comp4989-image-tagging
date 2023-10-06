@@ -1,0 +1,40 @@
+import tensorflow
+from tensorflow.keras import utils
+import numpy as np
+import pandas as pd
+
+class Generator(tensorflow.keras.utils.Sequence) :
+
+    def __init__(self, x, y, image_dir, batch_size, image_size) :
+        self.x = x
+        self.y = y
+        self.batch_size = batch_size
+        self.image_dir = image_dir
+        self.image_size = image_size
+
+    def __len__(self) :
+        return int((len(self.x) / self.batch_size))
+
+    def __getitem__(self, index) :
+        X_dataset = []
+        start = index * self.batch_size
+        end = (index + 1) * self.batch_size
+        for i in range(start, end):
+            # /dir/im1.jpg
+            img = utils.load_img(self.image_dir + 'im' + str(self.x[i]) + '.jpg', target_size=(self.image_size, self.image_size, 3))
+            img = utils.img_to_array(img)
+            img = img/255.
+            X_dataset.append(img)
+        y = self.y[start:end]
+        return np.array(X_dataset), y
+
+if __name__ == "__main__":
+    SIZE = 200
+    image_dir = "../MIRFLICKR/mirflickr/"
+    csv_dir = "./output.csv"
+
+    df = pd.read_csv(csv_dir)
+    X = np.array(df["Image"])
+    y = np.array(df.drop("Image", axis=1))
+    train_generator = Generator(X, y, image_dir, 16, SIZE)
+    print(train_generator[1])

@@ -1,19 +1,12 @@
-import keras
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv2D, MaxPooling2D
-import keras.utils as image
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
+from tensorflow.keras import utils
 from generator import Generator
-# from keras.preprocessing import image
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from tqdm import tqdm
-from keras.layers import BatchNormalization
 
-from keras.models import load_model
-from keras.models import model_from_json, model_from_yaml
 
 def display_training(history):
     loss = history.history['loss']
@@ -38,7 +31,7 @@ def display_training(history):
     # plt.show()
 
 def train_and_save_model():
-    SIZE = 200
+    SIZE = 300
     image_dir = "../MIRFLICKR/mirflickr/"
     csv_dir = "./output.csv"
 
@@ -48,29 +41,26 @@ def train_and_save_model():
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=41)
 
     train_generator = Generator(X_train, y_train, image_dir, 16, SIZE)
+    print("Train Generator", train_generator)
     test_generator = Generator(X_test, y_test, image_dir, 15, SIZE)
 
     model = Sequential()
     # crystal clear to explain what Convolutional Layer is doing, what Pooling Layer is doing, and what
     # connected layer
     model.add(Conv2D(filters=16, kernel_size=(5, 5), activation='relu', input_shape=(SIZE, SIZE, 3)))
-    model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.2))
 
     model.add(Conv2D(filters=32, kernel_size=(5,5), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
     model.add(Dropout(0.2))
 
     model.add(Conv2D(filters=64, kernel_size=(5, 5), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
     model.add(Dropout(0.2))
 
     model.add(Conv2D(filters=64, kernel_size=(5, 5), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
     model.add(Dropout(0.2))
 
     model.add(Flatten())
@@ -90,7 +80,7 @@ def train_and_save_model():
     history = model.fit_generator(generator=train_generator, validation_data=test_generator, epochs=30)
 
     # display_training(history)
-    test_model_with_image(model, df)
+    # test_model_with_image(model, df)
 
     model.save("oct5_6pm_model1.h5")
 
@@ -99,20 +89,20 @@ def train_and_save_model():
 
     # save model
 
-def test_model_with_image(model, df):
-    SIZE = 200
-    img = image.load_img('test_img.jpg', target_size=(SIZE, SIZE, 3))
-    img = image.img_to_array(img)
-    img = img/255.
-    plt.imshow(img)
-    img = np.expand_dims(img, axis=0)
-
-    classes = np.array(df.columns[2:])
-    prob = model.predict(img)
-    sorted_cats = np.argsort(prob[0])[:-11:-1]
-
-    for i in range(10):
-        print(f"{classes[sorted_cats[i]]} - {prob[0][sorted_cats[i]]}")
+# def test_model_with_image(model, df):
+#     SIZE = 200
+#     img = utils.load_img('test_img.jpg', target_size=(SIZE, SIZE, 3))
+#     img = utils.img_to_array(img)
+#     img = img/255.
+#     plt.imshow(img)
+#     img = np.expand_dims(img, axis=0)
+#
+#     classes = np.array(df.columns[2:])
+#     prob = model.predict(img)
+#     sorted_cats = np.argsort(prob[0])[:-11:-1]
+#
+#     for i in range(10):
+#         print(f"{classes[sorted_cats[i]]} - {prob[0][sorted_cats[i]]}")
 
 
 def main():
