@@ -36,8 +36,8 @@ def display_training(history):
     # plt.show()
 
 def train_and_save_model():
-    image_dir = "dataset/images/"
-    csv_dir = "dataset/train.csv"
+    image_dir = "/Users/wilsco/Downloads/mirflickr/"
+    csv_dir = "output.csv"
     # read .csv to get data regarding each image in our dataset
     df = pd.read_csv(csv_dir)
     print(df.head())
@@ -49,18 +49,18 @@ def train_and_save_model():
     SIZE = 200
     X_dataset = []
     for i in tqdm(range(df.shape[0])):
-        img = image.load_img(image_dir + df['Id'][i] + '.jpg', target_size=(SIZE, SIZE, 3))
+        # /dir/im1.jpg
+        img = image.load_img(image_dir + 'im' + str(df['Image'][i]) + '.jpg', target_size=(SIZE, SIZE, 3))
         img = image.img_to_array(img)
         img = img/255.
         X_dataset.append(img)
 
-    # create an array of size (5000, 200, 200, 3) - 2
+    # create an array of size (~25000, 200, 200, 3) - 2
     X = np.array(X_dataset)
 
-    # drop ID and Genre as we don't care about them
-    # dataset is 
-
-    y = np.array(df.drop(['Id', 'Genre'], axis=1))
+    # drop ID and Genre for movies as we don't care about them
+    # For mirflickr, drop Image
+    y = np.array(df.drop(['Image'], axis=1))
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=20, test_size=0.3)
 
@@ -92,9 +92,10 @@ def train_and_save_model():
     model.add(Dropout(0.5))
     model.add(Dense(64, activation='relu'))
     model.add(Dropout(0.5))
-    # the 25 label categories
+    # the 25 label categories for movies
+    # 24 labels for mirflickr
     # for activiation, do not use softmax for multi-class problems
-    model.add(Dense(25, activation='sigmoid'))
+    model.add(Dense(24, activation='sigmoid'))
 
     model.summary()
 
@@ -103,16 +104,17 @@ def train_and_save_model():
     history = model.fit(X_train, y_train, epochs=10, validation_data=(X_test, y_test), batch_size=64)
     # display_training(history)
     test_model_with_image(model, df)
+    
+    model.save("oct5_6pm_model.h5")
 
     _, acc = model.evaluate(X_test, y_test)
     print(f"Accuracy: {acc * 100.00}%")
 
     # save model
-    model.save("full_model.h5")
 
 def test_model_with_image(model, df):
     SIZE = 200
-    img = image.load_img('test.jpg', target_size=(SIZE, SIZE, 3))
+    img = image.load_img('test_img.jpg', target_size=(SIZE, SIZE, 3))
     img = image.img_to_array(img)
     img = img/255.
     plt.imshow(img)
