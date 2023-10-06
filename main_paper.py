@@ -62,44 +62,36 @@ def get_base_model(shape, output):
 
 def get_model(shape, output):
     # Create a Sequential model
-    model = tf.keras.Sequential()
 
+    model = tf.keras.Sequential()
     # First Convolutional Layer
     model.add(Conv2D(96, (11, 11), strides=(4, 4), input_shape=shape, padding='valid', activation='relu'))
-    model.add(Dropout(0.3))
 
     # Second Convolutional Layer
     model.add(Conv2D(256, (5, 5), padding='same', activation='relu'))
-    model.add(Dropout(0.3))
 
     # Third Convolutional Layer
-    # model.add(Conv2D(384, (3, 3), padding='same', activation='relu'))
+    model.add(Conv2D(384, (3, 3), padding='same', activation='relu'))
 
     # Fourth Convolutional Layer
-    # model.add(Conv2D(384, (3, 3), padding='same', activation='relu'))
+    model.add(Conv2D(384, (3, 3), padding='same', activation='relu'))
 
     # Fifth Convolutional Layer
-    # model.add(Conv2D(256, (3, 3), padding='same', activation='relu'))
+    model.add(Conv2D(256, (3, 3), padding='same', activation='relu'))
 
     # Flatten the output for fully connected layers
     model.add(Flatten())
 
     # Fully Connected Layer 1
-    # model.add(Dense(4096, activation='relu'))
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
 
     # Fully Connected Layer 2
-    # model.add(Dense(4096, activation='relu'))
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
 
-    # Fully Connected Layer Mine
-    model.add(Dense(128, activation='relu'))
-    model.add(Dropout(0.3))
-
-    # model.add(layers.Dense(128, activation="relu"))
-    # # model.add(layers.BatchNormalization())
-    # model.add(layers.Dropout(0.3))
-
-    model.add(layers.Dense(output, activation="sigmoid"))
-
+    # Output Layer (assuming a specific number of classes)
+    model.add(Dense(output, activation='sigmoid'))
     return model
 
 if __name__ == "__main__":
