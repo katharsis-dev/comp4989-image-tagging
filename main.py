@@ -82,8 +82,13 @@ def get_model(shape):
 if __name__ == "__main__":
     X_train, X_test, y_train, y_test = get_data()
 
+    gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+    for device in gpu_devices:
+        tf.config.experimental.set_memory_growth(device, True)
+
     model = get_model(X_train[0].shape)
     model.compile(optimizer="rmsprop", loss="binary_crossentropy", metrics=["accuracy"])
     es_callback = keras.callbacks.EarlyStopping(monitor="val_loss", patience=3)
-    history = model.fit(X_train, y_train, epochs=15, callbacks=[es_callback], validation_split=0.3, batch_size=16)
+    # history = model.fit(X_train, y_train, epochs=15, callbacks=[es_callback], validation_split=0.3, batch_size=16)
+    history = model.fit(X_train, y_train, epochs=30, batch_size=16, validation_split=0.2)
 
