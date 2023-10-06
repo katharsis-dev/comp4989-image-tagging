@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader, random_split
 from torch.optim import AdamW
 import pandas as pd
 import torch
+import torchmetrics as tm
 
 from model import MultiLabelClassifier
 from dataset import MoviePosterDataset
@@ -27,10 +28,11 @@ labels = data.drop(columns=["Id", "Genre"]).values.tolist()
 dataset = MoviePosterDataset(image_paths, labels, processor)
 model = MultiLabelClassifier(**model_config).to(device)
 optimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)
+metric = tm.AveragePrecision('multilabel', num_labels=model_config["n_classes"])
 
 train_size = int(0.8 * len(dataset))
 eval_size = len(dataset) - train_size
-train_dataset, eval_dataset = torch.utils.data.random_split(dataset, [train_size, eval_size])
+train_dataset, eval_dataset = random_split(dataset, [train_size, eval_size])
 
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 eval_loader = DataLoader(eval_dataset, batch_size=16, shuffle=False)
@@ -53,24 +55,30 @@ def run():
             loss.backward()
             optimizer.step()
 
-            train_loss += loss.item()
+            train_loss += loss.item() * imgs.shape[0] / train_size
 
-        print(f'Training loss: {train_loss / len(train_loader)}')
+        print(f'Training loss: {train_loss}')
 
         model.eval()
         with torch.no_grad():
             eval_loss = 0
-            precision = 0
+            all_pred = []
+            all_labels = []
+
             for batch in eval_loader:
                 imgs = batch['image'].to(device)
                 labs = batch['label'].to(device)
 
-                loss, MAP = model(imgs, labs)
-                eval_loss += loss.item()
-                precision += MAP.item() * imgs.shape[0] / eval_size
+                loss, pred = model(imgs, labs)
+                eval_loss += loss.item() * imgs.shape[0] / eval_size
+                all_pred.append(pred)
+                all_labels.append(labs)
 
-            print(f"Mean average precision: {precision}")
-            print(f"Evaluation loss: {eval_loss / len(eval_loader)}")
+            all_pred = torch.cat(all_pred)
+            all_labels = torch.cat(all_labels)
+            map_value = metric(all_pred, all_labels)
+            print(f"Mean average precision: {map_value}")
+            print(f"Evaluation loss: {eval_loss}")
 
 
 run()
