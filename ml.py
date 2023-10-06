@@ -2,7 +2,9 @@ import keras
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
-from keras.preprocessing import image
+import keras.utils as image
+from generator import Generator
+# from keras.preprocessing import image
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -36,33 +38,17 @@ def display_training(history):
     # plt.show()
 
 def train_and_save_model():
-    image_dir = "/Users/wilsco/Downloads/mirflickr/"
-    csv_dir = "output.csv"
-    # read .csv to get data regarding each image in our dataset
-    df = pd.read_csv(csv_dir)
-    print(df.head())
-    print(df.columns)
-
-    # load limited set of datapoints first to prevent memory issues
-    # df = df.iloc[:5000] 
-
     SIZE = 200
-    X_dataset = []
-    for i in tqdm(range(df.shape[0])):
-        # /dir/im1.jpg
-        img = image.load_img(image_dir + 'im' + str(df['Image'][i]) + '.jpg', target_size=(SIZE, SIZE, 3))
-        img = image.img_to_array(img)
-        img = img/255.
-        X_dataset.append(img)
+    image_dir = "../MIRFLICKR/mirflickr/"
+    csv_dir = "./output.csv"
 
-    # create an array of size (~25000, 200, 200, 3) - 2
-    X = np.array(X_dataset)
+    df = pd.read_csv(csv_dir)
+    X = np.array(df["Image"])
+    y = np.array(df.drop("Image", axis=1))
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=41)
 
-    # drop ID and Genre for movies as we don't care about them
-    # For mirflickr, drop Image
-    y = np.array(df.drop(['Image'], axis=1))
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=20, test_size=0.3)
+    train_generator = Generator(X_train, y_train, image_dir, 16, SIZE)
+    test_generator = Generator(X_test, y_test, image_dir, 15, SIZE)
 
     model = Sequential()
     # crystal clear to explain what Convolutional Layer is doing, what Pooling Layer is doing, and what
@@ -101,11 +87,12 @@ def train_and_save_model():
 
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
-    history = model.fit(X_train, y_train, epochs=10, validation_data=(X_test, y_test), batch_size=64)
+    history = model.fit_generator(generator=train_generator, validation_data=test_generator, epochs=30)
+
     # display_training(history)
     test_model_with_image(model, df)
-    
-    model.save("oct5_6pm_model.h5")
+
+    model.save("oct5_6pm_model1.h5")
 
     _, acc = model.evaluate(X_test, y_test)
     print(f"Accuracy: {acc * 100.00}%")
