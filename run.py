@@ -2,14 +2,15 @@ from transformers import AutoImageProcessor, ResNetForImageClassification
 from torch.utils.data import DataLoader, random_split
 from torch.optim import AdamW
 import pandas as pd
-import numpy as np
 import torch
 
 from model import MultiLabelClassifier
 from dataset import MoviePosterDataset
 
+device = torch.cuda.current_device() if torch.cuda.is_available() else 'cpu'
+
 data = pd.read_csv("./datasets/Movies-Poster_Dataset-master/train.csv")
-data = data.head(100)
+data = data.head(1000)
 
 processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
 cnn_model = ResNetForImageClassification.from_pretrained("microsoft/resnet-50")
@@ -24,7 +25,7 @@ image_paths = [''.join(["./datasets/Movies-Poster_Dataset-master/Images/", item,
 labels = data.drop(columns=["Id", "Genre"]).values.tolist()
 
 dataset = MoviePosterDataset(image_paths, labels, processor)
-model = MultiLabelClassifier(**model_config)
+model = MultiLabelClassifier(**model_config).to(device)
 optimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)
 
 train_size = int(0.8 * len(dataset))
@@ -39,16 +40,16 @@ def run():
     num_epochs = 10
     for epoch in range(num_epochs):
         model.train()
-        train_loss = 0.0
+        train_loss = 0
 
         print(f"Epoch {epoch + 1}: ")
 
         for batch in train_loader:
-            images = batch['image']
-            labels = batch['label']
+            imgs = batch['image'].to(device)
+            labs = batch['label'].to(device)
 
             optimizer.zero_grad()
-            loss, logits = model(images, labels)
+            loss, _ = model(imgs, labs)
             loss.backward()
             optimizer.step()
 
@@ -58,16 +59,18 @@ def run():
 
         model.eval()
         with torch.no_grad():
-            eval_loss = 0.0
+            eval_loss = 0
+            precision = 0
             for batch in eval_loader:
-                images = batch['image']
-                labels = batch['label']
+                imgs = batch['image'].to(device)
+                labs = batch['label'].to(device)
 
-                loss, logits = model(images, labels)
+                loss, MAP = model(imgs, labs)
                 eval_loss += loss.item()
+                precision += MAP.item() * imgs.shape[0] / eval_size
 
+            print(f"Mean average precision: {precision}")
             print(f"Evaluation loss: {eval_loss / len(eval_loader)}")
 
 
 run()
-
