@@ -11,7 +11,7 @@ from dataset import MoviePosterDataset
 device = torch.cuda.current_device() if torch.cuda.is_available() else 'cpu'
 
 data = pd.read_csv("./datasets/Movies-Poster_Dataset-master/train.csv")
-data = data.head(1000)
+# data = data.head(1000)
 
 processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
 cnn_model = ResNetForImageClassification.from_pretrained("microsoft/resnet-50")
@@ -30,7 +30,7 @@ model = MultiLabelClassifier(**model_config).to(device)
 optimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)
 metric = tm.AveragePrecision('multilabel', num_labels=model_config["n_classes"])
 
-train_size = int(0.8 * len(dataset))
+train_size = int(0.7 * len(dataset))
 eval_size = len(dataset) - train_size
 train_dataset, eval_dataset = random_split(dataset, [train_size, eval_size])
 
@@ -43,6 +43,8 @@ def run():
     for epoch in range(num_epochs):
         model.train()
         train_loss = 0
+        train_pred = []
+        train_labels = []
 
         print(f"Epoch {epoch + 1}: ")
 
@@ -51,13 +53,19 @@ def run():
             labs = batch['label'].to(device)
 
             optimizer.zero_grad()
-            loss, _ = model(imgs, labs)
+            loss, pred = model(imgs, labs)
             loss.backward()
             optimizer.step()
 
             train_loss += loss.item() * imgs.shape[0] / train_size
+            train_pred.append(pred)
+            train_labels.append(labs)
 
+        train_pred = torch.cat(train_pred)
+        train_labels = torch.cat(train_labels)
+        train_map = metric(train_pred, train_labels)
         print(f'Training loss: {train_loss}')
+        print(f"Mean average precision: {train_map}")
 
         model.eval()
         with torch.no_grad():
@@ -77,8 +85,8 @@ def run():
             all_pred = torch.cat(all_pred)
             all_labels = torch.cat(all_labels)
             map_value = metric(all_pred, all_labels)
-            print(f"Mean average precision: {map_value}")
             print(f"Evaluation loss: {eval_loss}")
+            print(f"Mean average precision: {map_value}")
 
 
 run()
