@@ -8,7 +8,7 @@ from tensorflow import keras
 from tensorflow.keras.applications.resnet import ResNet152, ResNet50
 from tensorflow.keras.models import Model
 from tensorflow.keras import layers
-from tensorflow.keras.layers import Conv2D, Flatten, Dense, Dropout, GlobalAveragePooling2D, MaxPooling2D, BatchNormalization
+from tensorflow.keras.layers import Conv2D, Flatten, Dense, Dropout, GlobalAveragePooling2D, MaxPooling2D, BatchNormalization, Activation
 
 from tensorflow.keras.optimizers import RMSprop, Adam
 from tensorflow.keras.preprocessing import image
@@ -61,34 +61,53 @@ def get_base_model(shape, output):
 
 
 def get_model(shape, output):
+    model = tf.keras.Sequential()
+    model.add(layers.Conv2D(96, 11, strides=4, padding='same', input_shape=shape))
+    model.add(layers.Lambda(tf.nn.local_response_normalization))
+    model.add(layers.Activation('relu'))
+    model.add(layers.MaxPooling2D(3, strides=2))
+    model.add(layers.Conv2D(256, 5, strides=4, padding='same'))
+    model.add(layers.Lambda(tf.nn.local_response_normalization))
+    model.add(layers.Activation('relu'))
+    model.add(layers.MaxPooling2D(3, strides=2))
+    model.add(layers.Conv2D(384, 3, strides=4, padding='same'))
+    model.add(layers.Activation('relu'))
+    model.add(layers.Conv2D(384, 3, strides=4, padding='same'))
+    model.add(layers.Activation('relu'))
+    model.add(layers.Conv2D(256, 3, strides=4, padding='same'))
+    model.add(layers.Activation('relu'))
+    model.add(layers.Flatten())
+    model.add(layers.Dense(4096, activation='relu'))
+    model.add(layers.Dropout(0.5))
+    model.add(layers.Dense(4096, activation='relu'))
+    model.add(layers.Dropout(0.5))
     # Create a Sequential model
 
-    model = tf.keras.Sequential()
-    # First Convolutional Layer
-    model.add(Conv2D(96, (11, 11), strides=(4, 4), input_shape=shape, padding='valid', activation='relu'))
-
-    # Second Convolutional Layer
-    model.add(Conv2D(256, (5, 5), padding='same', activation='relu'))
-
-    # Third Convolutional Layer
-    model.add(Conv2D(384, (3, 3), padding='same', activation='relu'))
-
-    # Fourth Convolutional Layer
-    model.add(Conv2D(384, (3, 3), padding='same', activation='relu'))
-
-    # Fifth Convolutional Layer
-    model.add(Conv2D(256, (3, 3), padding='same', activation='relu'))
-
-    # Flatten the output for fully connected layers
-    model.add(Flatten())
-
-    # Fully Connected Layer 1
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
-
-    # Fully Connected Layer 2
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
+    # # First Convolutional Layer
+    # model.add(Conv2D(96, (11, 11), strides=(4, 4), input_shape=shape, padding='valid', activation='relu'))
+    #
+    # # Second Convolutional Layer
+    # model.add(Conv2D(256, (5, 5), padding='same', activation='relu'))
+    #
+    # # Third Convolutional Layer
+    # model.add(Conv2D(384, (3, 3), padding='same', activation='relu'))
+    #
+    # # Fourth Convolutional Layer
+    # model.add(Conv2D(384, (3, 3), padding='same', activation='relu'))
+    #
+    # # Fifth Convolutional Layer
+    # model.add(Conv2D(256, (3, 3), padding='same', activation='relu'))
+    #
+    # # Flatten the output for fully connected layers
+    # model.add(Flatten())
+    #
+    # # Fully Connected Layer 1
+    # model.add(Dense(4096, activation='relu'))
+    # model.add(Dropout(0.5))
+    #
+    # # Fully Connected Layer 2
+    # model.add(Dense(4096, activation='relu'))
+    # model.add(Dropout(0.5))
 
     # Output Layer (assuming a specific number of classes)
     model.add(Dense(output, activation='sigmoid'))
