@@ -17,7 +17,7 @@ if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
 data = pd.read_csv("./datasets/mirflickr25k/output.csv")
-data = data.head(100)
+# data = data.head(100)
 
 processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
 cnn_model = ResNetForImageClassification.from_pretrained("microsoft/resnet-50")
@@ -47,7 +47,7 @@ test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
 
 def train():
-    num_epochs = 3
+    num_epochs = 10
     for epoch in range(num_epochs):
         model.train()
         train_loss = 0
