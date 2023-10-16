@@ -20,19 +20,13 @@ class Generator(tensorflow.keras.utils.Sequence) :
         X_dataset = []
         start = index * self.batch_size
         end = (index + 1) * self.batch_size
-        image_augmentation = tensorflow.keras.Sequential([
-            Resizing(self.image_size + 50, self.image_size + 50),
-            RandomRotation(0.2),
-            RandomCrop(self.image_size, self.image_size),
-            Rescaling(1./255),
-            ])
         for i in range(start, end):
             # /dir/im1.jpg
-            img = utils.load_img(self.image_dir + 'im' + str(self.x[i]) + '.jpg', target_size=(self.image_size + 50, self.image_size + 50, 3))
+            img = utils.load_img(self.image_dir + 'im' + str(self.x[i]) + '.jpg', target_size=(self.image_size, self.image_size, 3))
             img = utils.img_to_array(img)
             img = img/255.
             X_dataset.append(img)
-        X_dataset = np.array(image_augmentation(X_dataset))
+        X_dataset = np.array(X_dataset)
         # aug_images = np.array(image_augmentation(X_dataset))
         # print(X_dataset.shape)
         # print(aug_images.shape)
