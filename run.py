@@ -17,7 +17,7 @@ if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
 data = pd.read_csv("./datasets/mirflickr25k/output.csv")
-# data = data.head(1000)
+data = data.head(100)
 
 processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
 cnn_model = ResNetForImageClassification.from_pretrained("microsoft/resnet-50")
@@ -33,19 +33,21 @@ labels = data.drop(columns=["Image"]).values.tolist()
 
 dataset = ImageDataset(image_paths, labels, processor)
 model = MultiLabelClassifier(**model_config).to(device)
-optimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)
+optimizer = AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
 metric = tm.AveragePrecision('multilabel', num_labels=model_config["n_classes"])
 
 train_size = int(0.7 * len(dataset))
-eval_size = len(dataset) - train_size
-train_dataset, eval_dataset = random_split(dataset, [train_size, eval_size])
+eval_size = int(0.25 * len(dataset))
+test_size = len(dataset) - train_size - eval_size
+train_dataset, eval_dataset, test_dataset = random_split(dataset, [train_size, eval_size, test_size])
 
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 eval_loader = DataLoader(eval_dataset, batch_size=16, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
 
 def train():
-    num_epochs = 10
+    num_epochs = 3
     for epoch in range(num_epochs):
         model.train()
         train_loss = 0
@@ -82,17 +84,14 @@ def train():
             all_pred = []
             all_labels = []
 
-            with tqdm(total=len(train_loader)) as prog:
-                for batch in eval_loader:
-                    imgs = batch['image'].to(device)
-                    labs = batch['label'].to(device)
+            for batch in eval_loader:
+                imgs = batch['image'].to(device)
+                labs = batch['label'].to(device)
 
-                    loss, pred = model(imgs, labs)
-                    eval_loss += loss.item() * imgs.shape[0] / eval_size
-                    all_pred.append(pred)
-                    all_labels.append(labs)
-
-                    prog.update(1)
+                loss, pred = model(imgs, labs)
+                eval_loss += loss.item() * imgs.shape[0] / eval_size
+                all_pred.append(pred)
+                all_labels.append(labs)
 
             all_pred = torch.cat(all_pred)
             all_labels = torch.cat(all_labels)
@@ -102,4 +101,31 @@ def train():
 
     torch.save(model.state_dict(), os.path.join(save_dir, "model_state.pt"))
 
+
+def test():
+    model.load_state_dict(torch.load(os.path.join(save_dir, "model_state.pt")))
+    model.eval()
+    test_loss = 0
+    test_pred = []
+    test_labels = []
+
+    with torch.no_grad():
+        for batch in test_loader:
+            imgs = batch['image'].to(device)
+            labs = batch['label'].to(device)
+
+            loss, pred = model(imgs, labs)
+            test_loss += loss.item() * imgs.shape[0] / test_size
+            test_pred.append(pred)
+            test_labels.append(labs)
+
+    test_pred = torch.cat(test_pred)
+    test_labels = torch.cat(test_labels)
+    map_value = metric(test_pred, test_labels)
+    print(f"Test loss: {test_loss}")
+    print(f"Mean average precision: {map_value}")
+
+
+
 train()
+test()
