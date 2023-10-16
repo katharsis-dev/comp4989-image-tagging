@@ -5,3 +5,4 @@ datasets
 torchmetrics
 pillow
 torch
+tqdm

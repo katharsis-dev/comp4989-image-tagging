@@ -4,28 +4,34 @@ from torch.optim import AdamW
 import pandas as pd
 import torch
 import torchmetrics as tm
+from tqdm import tqdm
+import os
 
 from model import MultiLabelClassifier
-from dataset import MoviePosterDataset
+from dataset import ImageDataset
 
 device = torch.cuda.current_device() if torch.cuda.is_available() else 'cpu'
 
-data = pd.read_csv("./datasets/Movies-Poster_Dataset-master/train.csv")
+save_dir = 'models'
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
+
+data = pd.read_csv("./datasets/mirflickr25k/output.csv")
 # data = data.head(1000)
 
 processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
 cnn_model = ResNetForImageClassification.from_pretrained("microsoft/resnet-50")
 model_config = {
     'model': cnn_model,
-    'p_drop': 0.3,
+    'p_drop': 0.5,
     'n_model_out': 1000,
-    'n_classes': 25,
+    'n_classes': 24,
 }
 
-image_paths = [''.join(["./datasets/Movies-Poster_Dataset-master/Images/", item, ".jpg"]) for item in data['Id']]
-labels = data.drop(columns=["Id", "Genre"]).values.tolist()
+image_paths = [''.join(["./datasets/mirflickr25k/mirflickr/", "im", str(item), ".jpg"]) for item in data['Image']]
+labels = data.drop(columns=["Image"]).values.tolist()
 
-dataset = MoviePosterDataset(image_paths, labels, processor)
+dataset = ImageDataset(image_paths, labels, processor)
 model = MultiLabelClassifier(**model_config).to(device)
 optimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)
 metric = tm.AveragePrecision('multilabel', num_labels=model_config["n_classes"])
@@ -38,7 +44,7 @@ train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 eval_loader = DataLoader(eval_dataset, batch_size=16, shuffle=False)
 
 
-def run():
+def train():
     num_epochs = 10
     for epoch in range(num_epochs):
         model.train()
@@ -48,18 +54,21 @@ def run():
 
         print(f"Epoch {epoch + 1}: ")
 
-        for batch in train_loader:
-            imgs = batch['image'].to(device)
-            labs = batch['label'].to(device)
+        with tqdm(total=len(train_loader)) as prog:
+            for batch in train_loader:
+                imgs = batch['image'].to(device)
+                labs = batch['label'].to(device)
 
-            optimizer.zero_grad()
-            loss, pred = model(imgs, labs)
-            loss.backward()
-            optimizer.step()
+                optimizer.zero_grad()
+                loss, pred = model(imgs, labs)
+                loss.backward()
+                optimizer.step()
 
-            train_loss += loss.item() * imgs.shape[0] / train_size
-            train_pred.append(pred)
-            train_labels.append(labs)
+                train_loss += loss.item() * imgs.shape[0] / train_size
+                train_pred.append(pred)
+                train_labels.append(labs)
+
+                prog.update(1)
 
         train_pred = torch.cat(train_pred)
         train_labels = torch.cat(train_labels)
@@ -73,14 +82,17 @@ def run():
             all_pred = []
             all_labels = []
 
-            for batch in eval_loader:
-                imgs = batch['image'].to(device)
-                labs = batch['label'].to(device)
+            with tqdm(total=len(train_loader)) as prog:
+                for batch in eval_loader:
+                    imgs = batch['image'].to(device)
+                    labs = batch['label'].to(device)
 
-                loss, pred = model(imgs, labs)
-                eval_loss += loss.item() * imgs.shape[0] / eval_size
-                all_pred.append(pred)
-                all_labels.append(labs)
+                    loss, pred = model(imgs, labs)
+                    eval_loss += loss.item() * imgs.shape[0] / eval_size
+                    all_pred.append(pred)
+                    all_labels.append(labs)
+
+                    prog.update(1)
 
             all_pred = torch.cat(all_pred)
             all_labels = torch.cat(all_labels)
@@ -88,5 +100,6 @@ def run():
             print(f"Evaluation loss: {eval_loss}")
             print(f"Mean average precision: {map_value}")
 
+    torch.save(model.state_dict(), os.path.join(save_dir, "model_state.pt"))
 
-run()
+train()

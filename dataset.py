@@ -3,7 +3,7 @@ from PIL import Image
 import torch
 
 
-class MoviePosterDataset(Dataset):
+class ImageDataset(Dataset):
 
     def __init__(self, image_paths, labels, processor):
         self.image_paths = image_paths
