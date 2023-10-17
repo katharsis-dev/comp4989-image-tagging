@@ -71,7 +71,7 @@ save_file_name = f"model_state{'_' + args.dataset if args.dataset else ''}.pt"
 
 def train():
     start = time.time()
-    num_epochs = 1
+    num_epochs = 10
     for epoch in range(num_epochs):
         model.train()
         train_loss = 0
