@@ -67,7 +67,7 @@ train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 eval_loader = DataLoader(eval_dataset, batch_size=16, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
-save_file_name = f"model_state{'_' + args.dataset if args.dataset else ''}.pt"
+save_file_name = f"model_state{'_movie' if args.dataset == 'movie' else ''}.pt"
 
 def train():
     start = time.time()
