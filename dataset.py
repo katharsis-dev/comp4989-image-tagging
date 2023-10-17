@@ -11,14 +11,13 @@ class ImageDataset(Dataset):
         self.processor = processor
 
     def __getitem__(self, idx):
-        image = self.image_paths[idx]
-        image = Image.open(image).convert("RGB")
-        image = self.processor(image, return_tensors="pt")
-        image = image.pixel_values.squeeze(0)
+        with Image.open(self.image_paths[idx]).convert("RGB") as image:
+            image_t = self.processor(image, return_tensors="pt")
+        image_t = image_t.pixel_values.squeeze(0)
         label = torch.tensor(self.labels[idx])
 
         return {
-            'image': image,
+            'image': image_t,
             'label': label
         }
 
