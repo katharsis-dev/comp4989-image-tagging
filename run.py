@@ -8,6 +8,7 @@ from tqdm import tqdm
 import os
 import time
 import argparse
+import random
 
 from model import MultiLabelClassifier
 from dataset import ImageDataset
@@ -38,6 +39,11 @@ else:
 if args.mode == 'train_debug':
     device = 'cpu'
 
+random.seed(226)
+torch.manual_seed(226)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(226)
+
 processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
 cnn_model = ResNetForImageClassification.from_pretrained("microsoft/resnet-50")
 model_config = {
@@ -61,10 +67,11 @@ train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 eval_loader = DataLoader(eval_dataset, batch_size=16, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
+save_file_name = f"model_state{'_' + args.dataset if args.dataset else ''}.pt"
 
 def train():
     start = time.time()
-    num_epochs = 10
+    num_epochs = 1
     for epoch in range(num_epochs):
         model.train()
         train_loss = 0
@@ -117,11 +124,11 @@ def train():
             print(f"Mean average precision: {map_value}")
 
     print("\nTraining took {:.2f} seconds\n".format(time.time() - start))
-    torch.save(model.state_dict(), os.path.join(save_dir, "model_state.pt"))
+    torch.save(model.state_dict(), os.path.join(save_dir, save_file_name))
 
 
 def test():
-    model.load_state_dict(torch.load(os.path.join(save_dir, "model_state.pt")))
+    model.load_state_dict(torch.load(os.path.join(save_dir, save_file_name)))
     model.eval()
     test_loss = 0
     test_pred = []
