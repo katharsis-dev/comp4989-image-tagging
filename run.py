@@ -6,18 +6,37 @@ import torch
 import torchmetrics as tm
 from tqdm import tqdm
 import os
+import time
+import argparse
 
 from model import MultiLabelClassifier
 from dataset import ImageDataset
 
 device = torch.cuda.current_device() if torch.cuda.is_available() else 'cpu'
+parser = argparse.ArgumentParser()
+parser.add_argument('mode', help="Choose train, test, or train_debug.")
+parser.add_argument('-d', '--dataset', help="Choose flickr or movie.")
+args = parser.parse_args()
 
 save_dir = 'models'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-data = pd.read_csv("./datasets/mirflickr25k/output.csv")
-# data = data.head(100)
+if args.dataset == "movie":
+    data = pd.read_csv("./datasets/Movies-Poster_Dataset-master/train.csv")
+    data = data.head(100)
+    image_paths = [''.join(["./datasets/Movies-Poster_Dataset-master/Images/", str(item), ".jpg"]) for item in data['Id']]
+    labels = data.drop(columns=["Id", "Genre"]).values.tolist()
+    n_classes = 25
+else:
+    data = pd.read_csv("./datasets/mirflickr25k/output.csv")
+    data = data.head(100)
+    image_paths = [''.join(["./datasets/mirflickr25k/mirflickr/im", str(item), ".jpg"]) for item in data['Image']]
+    labels = data.drop(columns=["Image"]).values.tolist()
+    n_classes = 24
+
+if args.mode == 'train_debug':
+    device = 'cpu'
 
 processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
 cnn_model = ResNetForImageClassification.from_pretrained("microsoft/resnet-50")
@@ -25,11 +44,8 @@ model_config = {
     'model': cnn_model,
     'p_drop': 0.5,
     'n_model_out': 1000,
-    'n_classes': 24,
+    'n_classes': n_classes,
 }
-
-image_paths = [''.join(["./datasets/mirflickr25k/mirflickr/", "im", str(item), ".jpg"]) for item in data['Image']]
-labels = data.drop(columns=["Image"]).values.tolist()
 
 dataset = ImageDataset(image_paths, labels, processor)
 model = MultiLabelClassifier(**model_config).to(device)
@@ -47,6 +63,7 @@ test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
 
 def train():
+    start = time.time()
     num_epochs = 10
     for epoch in range(num_epochs):
         model.train()
@@ -99,6 +116,7 @@ def train():
             print(f"Evaluation loss: {eval_loss}")
             print(f"Mean average precision: {map_value}")
 
+    print("\nTraining took {:.2f} seconds\n".format(time.time() - start))
     torch.save(model.state_dict(), os.path.join(save_dir, "model_state.pt"))
 
 
@@ -126,6 +144,14 @@ def test():
     print(f"Mean average precision: {map_value}")
 
 
+def main():
+    if args.mode == 'train':
+        train()
+    elif args.mode == 'test':
+        test()
+    else:
+        print("Invalid mode.")
 
-train()
-test()
+
+if __name__ == '__main__':
+    main()
