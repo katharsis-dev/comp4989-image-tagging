@@ -1,0 +1,18 @@
+The core is point 4 and 5 (CNN and Demo)
+
+Why CNNs at all? Why not RNNs? 
+
+What Chi En cares about is the WHY of the architecture of our CNN (versus the how)
+
+Why does it need to go through 3 layers of pooling?
+
+Why is CNN able to detect features from images?
+
+What are the implications of additional layers?
+
+What is model-free, what is model-based
+
+Don’t walk through code! You can show it, but don’t do a full-on review
+
+**make sure to cite any code we use that isn’t ours
+
