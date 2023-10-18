@@ -98,9 +98,23 @@ def get_generators(size, batch_size):
     X = np.array(df["Image"])
     y = np.array(df.drop("Image", axis=1))
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=41)
+    train_generator = Generator(X_train, y_train, image_dir, batch_size, size, prefix="im")
+    test_generator = Generator(X_test, y_test, image_dir, batch_size, size, prefix="im")
+    return train_generator, test_generator
+
+def get_movie_generators(size, batch_size):
+    image_dir = "../Movies-Poster_Dataset/Images/"
+    csv_dir = "../Movies-Poster_Dataset/train.csv"
+
+    df = pd.read_csv(csv_dir)
+    X = np.array(df["Id"])
+    y = np.array(df.drop(["Id", "Genre"], axis=1))
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=41)
     train_generator = Generator(X_train, y_train, image_dir, batch_size, size)
     test_generator = Generator(X_test, y_test, image_dir, batch_size, size)
     return train_generator, test_generator
+
 
 if __name__ == "__main__":
     SIZE = 224
@@ -110,7 +124,8 @@ if __name__ == "__main__":
     for device in gpu_devices:
         tf.config.experimental.set_memory_growth(device, True)
 
-    train_generator, test_generator = get_generators(SIZE, BATCH_SIZE)
+    # train_generator, test_generator = get_generators(SIZE, BATCH_SIZE)
+    train_generator, test_generator = get_movie_generators(SIZE, BATCH_SIZE)
     x, y = train_generator[1]
     print(x[0].shape)
     print(y[0].shape[0])
