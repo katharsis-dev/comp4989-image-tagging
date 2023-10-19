@@ -1,5 +1,6 @@
 # COMP4989 Project (Group 4)
 ### Project Structure
+```
 .
 ├── code (Code used to train and test our model)/
 │   ├── main.py (Model Training File)
@@ -12,6 +13,7 @@
 │   ├── image (Code and images used in image demo)
 │   └── kernel (Code and images used in kernel demo)
 └── requirements.txt (Python env requirements)
+```
 
 ### Datasets
 MirFlickr: https://press.liacs.nl/mirflickr/mirdownload.html
